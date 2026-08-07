@@ -18,8 +18,8 @@ jobs:
         with:
           node-version: '22'
 
-      # Единственная зависимость — рантайм onnxruntime, и он peer: ставим его здесь,
-      # иначе типы worker.ts не разрешаются и проверка вырождается в самообман.
+      # The only dependency is the onnxruntime runtime, and it is a peer: install it
+      # here, or worker.ts types fail to resolve and the check becomes self-deception.
       - run: npm install --no-save onnxruntime-web typescript
 
       - run: npx tsc --noEmit -p tsconfig.json

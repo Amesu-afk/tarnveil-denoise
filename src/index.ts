@@ -1,29 +1,30 @@
-// Шумоподавление TarnVeil для браузера: узел Web Audio, за которым стоит
-// потоковая нейросеть на 48 кГц.
+// TarnVeil noise suppression for the browser: a Web Audio node backed by a
+// streaming 48 kHz neural network.
 //
-// Пакет ничего не знает о приложении: адрес модели, адрес рантайма onnxruntime и
-// адрес модуля воркета передаются вызывающим. Регистрацию воркета тоже делает он —
-// у каждого сборщика свой способ отдать URL модуля, и зашивать сюда чей-то один
-// значило бы навязать пользователю Vite.
+// The package knows nothing about the host application: the model URL, the
+// onnxruntime base and the worklet module URL are all supplied by the caller,
+// which also registers the worklet itself. Every bundler has its own way of
+// handing out a module URL, so hardcoding one here would force that bundler —
+// Vite — on everyone.
 import { SMARTNET_RATE } from './dsp'
 
-// Имя процессора, под которым воркет регистрируется в AudioWorkletGlobalScope.
-// Совпадает со строкой в worklet.ts — их менять только вместе.
+// Processor name the worklet registers under in AudioWorkletGlobalScope.
+// It matches the string in worklet.ts; the two only ever change together.
 const NODE_NAME = 'tarnveil-smartnet'
 
 export interface DenoiseOptions {
-  /** Адрес файла .onnx. Модель лежит в релизе репозитория, в git её нет. */
+  /** URL of the .onnx file. The model ships in a repository release, not in git. */
   modelUrl: string
-  /** Каталог с onnxruntime-web (ort-wasm-simd-threaded.wasm и .mjs). */
+  /** Directory holding onnxruntime-web (ort-wasm-simd-threaded.wasm and .mjs). */
   ortBase: string
-  /** URL модуля воркета, уже зарегистрированного в ctx.audioWorklet. */
+  /** URL of the worklet module, already registered in ctx.audioWorklet. */
   workletUrl: string
-  /** URL модуля воркера (new Worker(url, { type: 'module' })). */
+  /** URL of the worker module (new Worker(url, { type: 'module' })). */
   workerUrl: string
 }
 
-// Воркет сообщает о готовности одним сообщением. Ждём именно его, а не таймер:
-// addModule резолвится раньше, чем процессор создан.
+// The worklet announces readiness with a single message. Wait for that message
+// rather than a timer: addModule resolves before the processor is constructed.
 function waitForWorkletReady(node: AudioWorkletNode, timeoutMs = 5_000): Promise<boolean> {
   return new Promise((resolve) => {
     const timer = setTimeout(() => resolve(false), timeoutMs)
