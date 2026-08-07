@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Единственная зависимость — рантайм onnxruntime, и он peer: ставим его здесь,
+      # иначе типы worker.ts не разрешаются и проверка вырождается в самообман.
+      - run: npm install --no-save onnxruntime-web typescript
+
+      - run: npx tsc --noEmit -p tsconfig.json

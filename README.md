@@ -1,81 +1,86 @@
 # TarnVeil Denoise
 
-Нейросетевое шумоподавление микрофона для браузера. Узел Web Audio, за которым стоит
-потоковая модель на 48 кГц: включаете его в цепочку захвата — и собеседник перестаёт
-слышать вентилятор, дыхание, стук клавиатуры и клики мыши.
+English · [Русский](README.ru.md)
 
-Модель обучена с нуля для [TarnVeil](https://github.com/Amesu-afk/TarnVeil) и вынута
-из него. Считает всё в браузере: звук никуда не отправляется, серверу шумоподавление
-не нужно.
+Neural microphone noise suppression for the browser. A Web Audio node backed by a
+streaming 48 kHz model: put it in your capture chain and the other side stops hearing
+the fan, your breathing, your keyboard and your mouse.
 
-## Состояние
+The model was trained from scratch for [TarnVeil](https://github.com/Amesu-afk/TarnVeil)
+and extracted from it. Everything runs in the browser — no audio leaves the machine, and
+your server does not need to do anything.
 
-Работает в проде одного небольшого сервиса. Что это значит на практике:
+## Status
 
-- **измерено на реальных записях, а не на синтетике** — числа ниже воспроизводимы;
-- **клавиатура во время речи почти не убирается** — 3 дБ, см. «Чего не умеет»;
-- на телефоне не мерено: 33 МБ весов и вдвое слабее процессор;
-- API не заморожен.
+Running in production for one small deployment. In practice that means:
 
-## Что даёт, по замерам
+- **the numbers below were measured on real recordings, not on synthetic scenes** —
+  they are reproducible;
+- **keyboard clicks under speech are barely removed** — 3 dB, see "What it cannot do";
+- untested on phones: 33 MB of weights and half the CPU;
+- the API is not frozen.
 
-Реальные записи, чистый эталон рядом, каждое число — против необработанного сигнала:
+## What it buys you, measured
 
-| | эффект |
+Real recordings with a clean reference beside them. Every figure is against the
+untreated signal:
+
+| | effect |
 | --- | --- |
-| Дыхание в микрофон | **+13,3 дБ** |
-| Щелчок клавиши в паузе между словами | **+20…27 дБ** |
-| Щелчок клавиши **под речью** | **+3 дБ** |
-| Ровный фон (вентилятор, гул) | убирается вместе с паузами |
-| Голос | **+0,01 дБ** — не тронут |
+| Breathing into the microphone | **+13.3 dB** |
+| Key click in a pause between words | **+20…27 dB** |
+| Key click **under speech** | **+3 dB** |
+| Steady background (fan, hum) | removed along with the pauses |
+| The voice itself | **+0.01 dB** — untouched |
 
-Последняя строка важнее остальных: модель ничего не выигрывает за счёт голоса. Для
-сравнения, DeepFilterNet 3 на тех же записях снимает шум в паузах агрессивнее (+14,6 дБ
-против наших +8,9), но платит за это **−1,37 дБ голоса** и рвёт речь под щелчком.
+That last row matters more than the rest: the model gains nothing at the expense of the
+voice. For comparison, DeepFilterNet 3 on the same recordings removes more in pauses
+(+14.6 dB against our +8.9) but pays **−1.37 dB of voice** for it and tears speech apart
+under a click.
 
-## Чего не умеет
+## What it cannot do
 
-**Щелчок клавиши, попавший на речь, остаётся слышимым.** В паузе он снимается на
-20–27 дБ, под речью — на 3. Причина структурная: маска работает кадром 20 мс, а удар
-длится 2,8 мс, и внутри этого кадра вместе с ним лежит гласная. Убрать одно, не тронув
-другое, спектральная маска не может.
+**A key click that lands on speech stays audible.** In a pause it is knocked down by
+20–27 dB; under speech, by 3. The reason is structural: the mask works on a 20 ms frame,
+the click lasts 2.8 ms, and inside that frame a vowel sits on top of it. A spectral mask
+cannot remove one without touching the other.
 
-Мы перепробовали восемь подходов — упреждение 20 мс, подсказки детектора, deep filtering
-в двух схемах, короткое окно, целевой член функции потерь, посэмпловый ремонт, больше
-данных, дольше обучение. Семь провалились, восьмой дал 0,7 дБ. Если вам нужно именно
-это — берите что-то другое или беритесь за многомасштабный анализ.
+We tried eight approaches — 20 ms lookahead, detector hints, deep filtering in two
+compositions, a shorter window, a targeted loss term, per-sample repair, more data,
+longer training. Seven failed outright; the eighth bought 0.7 dB. If this is exactly what
+you need, use something else, or take on multi-resolution analysis.
 
-Ещё не умеет: работать не на 48 кГц, разделять голоса, подавлять эхо (это делает
-браузерный AEC до нас).
+It also does not: run at any rate other than 48 kHz, separate speakers, or cancel echo
+(the browser's AEC does that before us).
 
-## Цена
+## Cost
 
-Мерено на том же wasm-сборке, что и работает в браузере, а не по native-таймингам —
-они врут вдвое:
+Measured on the same wasm build that runs in the browser, not extrapolated from native
+timings — those are off by a factor of two:
 
-- **3,9 мс на кадр**, 4,5 мс в 95-м процентиле, при бюджете 10 мс;
-- 33 МБ весов, качаются один раз и кэшируются;
-- задержки не добавляет: модель причинная, окно 20 мс, шаг 10 мс.
+- **3.9 ms per frame**, 4.5 ms at the 95th percentile, against a 10 ms budget;
+- 33 MB of weights, downloaded once and cached;
+- adds no latency of its own: the model is causal, 20 ms window, 10 ms hop.
 
-## Установка
+## Install
 
 ```bash
 npm install onnxruntime-web
 ```
 
-Скопируйте `src/` к себе (пакета в npm пока нет) и положите рядом:
+Copy `src/` into your project (there is no npm package yet) and place beside it:
 
-- модель `smartnet-v7-hardmine.onnx` — из
-  [релизов](https://github.com/Amesu-afk/tarnveil-denoise/releases);
-- рантайм `ort-wasm-simd-threaded.wasm` и `.mjs` из `onnxruntime-web/dist`.
+- the model `smartnet-v7-hardmine.onnx` from
+  [releases](https://github.com/Amesu-afk/tarnveil-denoise/releases);
+- the runtime `ort-wasm-simd-threaded.wasm` and `.mjs` from `onnxruntime-web/dist`.
 
-## Использование
+## Usage
 
 ```ts
 import { createDenoiseNode } from './denoise/src'
 import workletUrl from './denoise/src/worklet.ts?worker&url'
 
-const ctx = new AudioContext({ sampleRate: 48000 })  // ровно 48 кГц, иначе вернёт null
+const ctx = new AudioContext({ sampleRate: 48000 })  // exactly 48 kHz, or it returns null
 const mic = await navigator.mediaDevices.getUserMedia({
   audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: true },
 })
@@ -89,51 +94,51 @@ const denoise = await createDenoiseNode(ctx, {
 
 if (denoise) {
   ctx.createMediaStreamSource(mic).connect(denoise.node)
-  denoise.node.connect(destination)     // дальше в WebRTC или куда нужно
-  denoise.onFailure((reason) => console.warn('шумодав отвалился:', reason))
+  denoise.node.connect(destination)     // on to WebRTC, or wherever you need it
+  denoise.onFailure((reason) => console.warn('denoiser dropped out:', reason))
 } else {
-  // Не завелось — не та частота, нет AudioWorklet, не скачались веса.
-  // Включите браузерное шумоподавление: остаться совсем без него хуже.
+  // Did not come up — wrong sample rate, no AudioWorklet, weights failed to load.
+  // Turn the browser's own suppression back on: no suppression at all is worse.
 }
 ```
 
-**Просите у браузера `noiseSuppression: false`.** Браузерный шумодав стоит до нас и
-отдаёт модели уже перекроенный спектр, а она обучена на сыром: получится металлический
-призвук и съеденные хвосты слов. Если наш узел не поднялся — верните браузерный.
+**Ask the browser for `noiseSuppression: false`.** The browser's suppressor sits before
+us and hands the model an already-reshaped spectrum, while the model was trained on raw
+noise: you get a metallic tinge and clipped word tails. If our node fails to start, put
+the browser's back.
 
-## Как устроено
+## How it works
 
 ```
-микрофон → AudioWorklet ──(кадры 480 сэмплов)──> Worker
-                        <──(обработанные кадры)──  onnxruntime-web + модель
+microphone → AudioWorklet ──(480-sample frames)──> Worker
+                          <──(processed frames)──   onnxruntime-web + model
 ```
 
-Инференс живёт в Worker, а не в воркете: воркет обязан уложиться в 128 сэмплов
-(2,7 мс), а кадр модели считается 3,9 мс — считать прямо в нём значило бы гарантированно
-рвать звук. Между ними — очередь с буфером; при переполнении узел честно сообщает
-`overrun` и открывает сквозной проход, вместо того чтобы молча заикаться.
+Inference lives in a Worker, not in the worklet: a worklet must finish within 128 samples
+(2.7 ms) and one model frame takes 3.9 ms, so computing it inline would guarantee dropouts.
+Between them sits a bounded queue; on overflow the node reports `overrun` and opens a
+passthrough instead of stuttering silently.
 
-Файлы:
-
-| файл | что внутри |
+| file | what is inside |
 | --- | --- |
-| `src/index.ts` | публичный интерфейс, жизненный цикл узла и воркера |
-| `src/worklet.ts` | AudioWorklet: нарезка на кадры, склейка результата |
-| `src/worker.ts` | onnxruntime-web, потоковое состояние модели |
-| `src/dsp.ts` | STFT ровно с теми параметрами, на которых училась модель |
-| `src/dsp-core.ts` | БПФ и очередь кадров |
+| `src/index.ts` | public API, node and worker lifecycle |
+| `src/worklet.ts` | AudioWorklet: framing and reassembly |
+| `src/worker.ts` | onnxruntime-web, streaming model state |
+| `src/dsp.ts` | STFT with exactly the parameters the model was trained on |
+| `src/dsp-core.ts` | FFT and the frame queue |
 
-Контракт модели — 48 кГц, БПФ 1024, окно Ханна 960 (периодическое), шаг 480. Поменяете
-любое число — ONNX по-прежнему посчитается, но звучать будет неправильно.
+The model contract is 48 kHz, 1024-point FFT, a periodic 960-sample Hann window, 480-sample
+hop. Change any of those numbers and the ONNX will still run — it will simply sound wrong.
 
-## Обучение
+## Training
 
-Код обучения пока не опубликован. Если он вам нужен — заведите issue, соберём отдельно.
-Коротко: 8,5 млн параметров, комплексная маска, обучение на генераторе сцен с
-реалистичным отношением речь/шум, отложенная проверка **по файлам, а не внутри файла**,
-и приёмка только по живым записям. Последнее оказалось важнее архитектуры: метрика
-генератора растёт, пока модель переучивается под сам генератор, и этого не видно.
+The training code is not published yet. Open an issue if you want it and we will put it
+together. In short: 8.5M parameters, a complex mask, training on a scene generator with
+realistic speech-to-noise ratios, held-out validation **split by file rather than inside a
+file**, and acceptance judged only on live recordings. That last rule turned out to matter
+more than the architecture: the generator's own metric keeps improving while the model
+overfits to the generator, and nothing in that metric shows it happening.
 
-## Лицензия
+## License
 
-Apache-2.0 — см. [LICENSE](LICENSE). Веса распространяются на тех же условиях.
+Apache-2.0 — see [LICENSE](LICENSE). The weights are released under the same terms.
