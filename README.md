@@ -70,7 +70,7 @@ npm install onnxruntime-web
 
 Copy `src/` into your project (there is no npm package yet) and place beside it:
 
-- the model `smartnet-v7-hardmine.onnx` from
+- the model `smartnet-v33-rooms.onnx` from
   [releases](https://github.com/Amesu-afk/tarnveil-denoise/releases);
 - the runtime `ort-wasm-simd-threaded.wasm` and `.mjs` from `onnxruntime-web/dist`.
 
@@ -86,7 +86,7 @@ const mic = await navigator.mediaDevices.getUserMedia({
 })
 
 const denoise = await createDenoiseNode(ctx, {
-  modelUrl: '/models/smartnet-v7-hardmine.onnx',
+  modelUrl: '/models/smartnet-v33-rooms.onnx',
   ortBase: '/ort/',
   workletUrl,
   workerUrl: new URL('./denoise/src/worker.ts', import.meta.url).href,
