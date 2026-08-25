@@ -6,9 +6,13 @@
 import * as ort from 'onnxruntime-web/wasm'
 import {
   SMARTNET_BINS,
+  SMARTNET_FINE_BINS,
   SMARTNET_HOP,
+  SMARTNET_SUBFRAMES,
+  SmartNetMultiresStft,
   SmartNetStft,
 } from './dsp'
+import { SmartNetMaskLookahead } from './mask-lookahead'
 
 // The recurrent width is read from the model rather than written here: a larger
 // checkpoint carries a wider state, and a hardcoded size would not fail, it
@@ -24,6 +28,30 @@ let previousLogMagnitude: Float32Array<ArrayBufferLike> = new Float32Array(SMART
 const spectrum = new Float32Array(SMARTNET_BINS * 2)
 const framer = new SmartNetStft()
 
+// The sub-frame model does not answer on the grid it looks at: it wants a second,
+// SHORT spectrum as input and returns two short frames instead of one long one.
+// The branch turns itself on from the presence of a `fine_spectrum` input in the
+// graph itself, not from a file name or a sidecar: the graph is the only source
+// that cannot drift away from the weights. An ordinary model creates none of this
+// and takes the previous path.
+const FINE_LENGTH = SMARTNET_SUBFRAMES * SMARTNET_FINE_BINS * 2
+let multires: SmartNetMultiresStft | null = null
+let lookahead: SmartNetMaskLookahead | null = null
+let fineSpectrum: Float32Array = new Float32Array(0)
+let fineOutput: Float32Array = new Float32Array(0)
+
+function configureGrid(active: ort.InferenceSession): void {
+  if (!active.inputNames.includes('fine_spectrum')) {
+    multires = null
+    lookahead = null
+    return
+  }
+  multires = new SmartNetMultiresStft()
+  lookahead = new SmartNetMaskLookahead()
+  fineSpectrum = new Float32Array(FINE_LENGTH)
+  fineOutput = new Float32Array(FINE_LENGTH)
+}
+
 let busy = false
 let audioPort: MessagePort | null = null
 let runtimeFailed = false
@@ -32,6 +60,8 @@ function resetState(): void {
   hidden = new Float32Array(hiddenSize)
   previousLogMagnitude = new Float32Array(SMARTNET_BINS)
   framer.reset()
+  multires?.reset()
+  lookahead?.reset()
 }
 
 function readHiddenSize(active: ort.InferenceSession): number {
@@ -59,22 +89,38 @@ async function initialize(modelUrl: string, ortBase: string): Promise<void> {
   })
   hiddenSize = readHiddenSize(session)
   HIDDEN_DIMS = [1, 1, hiddenSize]
+  configureGrid(session)
   resetState()
 }
 
 async function processBlock(input: Float32Array): Promise<Float32Array | null> {
   const active = session
   if (!active || input.length !== SMARTNET_HOP) return null
-  framer.analyze(input, spectrum)
-  const outputs = await active.run({
+  const grid = multires
+  if (grid) grid.analyze(input, spectrum, fineSpectrum)
+  else framer.analyze(input, spectrum)
+  const feed: Record<string, ort.Tensor> = {
     spectrum: new ort.Tensor('float32', spectrum, [1, 1, SMARTNET_BINS, 2]),
     hidden: new ort.Tensor('float32', hidden, HIDDEN_DIMS),
     previous_log_magnitude: new ort.Tensor('float32', previousLogMagnitude, PREVIOUS_DIMS),
-  })
+  }
+  if (grid) {
+    feed.fine_spectrum = new ort.Tensor(
+      'float32', fineSpectrum, [1, 1, SMARTNET_SUBFRAMES, SMARTNET_FINE_BINS, 2])
+  }
+  const outputs = await active.run(feed)
   hidden = outputs.hidden_out.data as Float32Array<ArrayBufferLike>
   previousLogMagnitude = outputs.log_magnitude_out.data as Float32Array<ArrayBufferLike>
   const output = new Float32Array(SMARTNET_HOP)
-  framer.synthesize(outputs.enhanced.data as Float32Array, output)
+  const enhanced = outputs.enhanced.data as Float32Array
+  if (grid) {
+    // Borrowing the mask from the right-hand neighbour costs one short frame of
+    // delay (240 samples, 5 ms) and nothing else - see mask-lookahead.
+    lookahead!.process(enhanced, fineSpectrum, fineOutput)
+    grid.synthesize(fineOutput, output)
+  } else {
+    framer.synthesize(enhanced, output)
+  }
   return output
 }
 

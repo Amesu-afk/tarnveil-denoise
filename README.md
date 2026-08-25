@@ -16,7 +16,8 @@ Running in production for one small deployment. In practice that means:
 
 - **the numbers below were measured on real recordings, not on synthetic scenes** —
   they are reproducible;
-- **keyboard clicks under speech are barely removed** — 3 dB, see "What it cannot do";
+- **keyboard clicks under speech are the weakest case** — better since the sub-frame
+  model, still the weakest, see "What it cannot do";
 - untested on phones: 33 MB of weights and half the CPU;
 - the API is not frozen.
 
@@ -38,17 +39,32 @@ voice. For comparison, DeepFilterNet 3 on the same recordings removes more in pa
 (+14.6 dB against our +8.9) but pays **−1.37 dB of voice** for it and tears speech apart
 under a click.
 
+Those figures were measured on the weights of the first release. What the current
+`smartnet-v54-psa` moves is the click under speech; the numbers for it are in the
+section below.
+
 ## What it cannot do
 
-**A key click that lands on speech stays audible.** In a pause it is knocked down by
-20–27 dB; under speech, by 3. The reason is structural: the mask works on a 20 ms frame,
-the click lasts 2.8 ms, and inside that frame a vowel sits on top of it. A spectral mask
-cannot remove one without touching the other.
+**A key click that lands on speech is the weakest case.** In a pause it is knocked down
+by 20–27 dB; under speech, by a few. The reason is structural: the mask works on a 20 ms
+frame, the click lasts 2.8 ms, and inside that frame a vowel sits on top of it. A
+spectral mask cannot remove one without touching the other.
 
-We tried eight approaches — 20 ms lookahead, detector hints, deep filtering in two
-compositions, a shorter window, a targeted loss term, per-sample repair, more data,
-longer training. Seven failed outright; the eighth bought 0.7 dB. If this is exactly what
-you need, use something else, or take on multi-resolution analysis.
+We tried eight approaches against it — 20 ms lookahead, detector hints, deep filtering in
+two compositions, a shorter window, a targeted loss term, per-sample repair, more data,
+longer training. Seven failed outright; the eighth bought 0.7 dB.
+
+The ninth is what `smartnet-v54-psa` is: multi-resolution. It still LOOKS at the 20 ms
+window but answers on a 5 ms grid inside it, and the mask borrows from the next short
+frame wherever that one was pushed down harder. Measured over eight click sources in
+TarnVeil's own capture chain — which puts a click suppressor in front of the model, so
+this is not the package on its own — the median over speech went from 4.5 dB to 6.2,
+winning on all eight sources, devices the model never saw among them. And the worst tenth
+of key presses stopped being negative (−0.3 → +0.4 dB): the previous weights sometimes
+made a click LOUDER than it arrived. It is paid for with 0.5 dB of SI-SDR on clean speech.
+
+It is still the weakest case. If this is exactly what you need, measure before you lean
+on it.
 
 It also does not: run at any rate other than 48 kHz, separate speakers, or cancel echo
 (the browser's AEC does that before us).
@@ -58,9 +74,13 @@ It also does not: run at any rate other than 48 kHz, separate speakers, or cance
 Measured on the same wasm build that runs in the browser, not extrapolated from native
 timings — those are off by a factor of two:
 
-- **3.9 ms per frame**, 4.5 ms at the 95th percentile, against a 10 ms budget;
+- **3.9 ms per frame**, 4.5 ms at the 95th percentile, against a 10 ms budget. Timed on
+  the first release's weights; natively the sub-frame model costs the same within noise
+  (1.84 ms per frame against 1.82), but it has not been re-timed in wasm;
 - 33 MB of weights, downloaded once and cached;
-- adds no latency of its own: the model is causal, 20 ms window, 10 ms hop.
+- adds no latency of its own: the model is causal, 20 ms window, 10 ms hop. The sub-frame
+  path synthesizes 240 samples earlier and spends exactly those on the mask lookahead, so
+  the total delay stays the same 544 samples — checked by a test, not by arithmetic.
 
 ## Install
 
@@ -70,7 +90,7 @@ npm install onnxruntime-web
 
 Copy `src/` into your project (there is no npm package yet) and place beside it:
 
-- the model `smartnet-v33-rooms.onnx` from
+- the model `smartnet-v54-psa.onnx` from
   [releases](https://github.com/Amesu-afk/tarnveil-denoise/releases);
 - the runtime `ort-wasm-simd-threaded.wasm` and `.mjs` from `onnxruntime-web/dist`.
 
@@ -86,7 +106,7 @@ const mic = await navigator.mediaDevices.getUserMedia({
 })
 
 const denoise = await createDenoiseNode(ctx, {
-  modelUrl: '/models/smartnet-v33-rooms.onnx',
+  modelUrl: '/models/smartnet-v54-psa.onnx',
   ortBase: '/ort/',
   workletUrl,
   workerUrl: new URL('./denoise/src/worker.ts', import.meta.url).href,
