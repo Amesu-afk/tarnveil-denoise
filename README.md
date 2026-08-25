@@ -145,10 +145,14 @@ passthrough instead of stuttering silently.
 | `src/worklet.ts` | AudioWorklet: framing and reassembly |
 | `src/worker.ts` | onnxruntime-web, streaming model state |
 | `src/dsp.ts` | STFT with exactly the parameters the model was trained on |
+| `src/mask-lookahead.ts` | holds the output one short frame and borrows the mask from the neighbour (sub-frame models only) |
 | `src/dsp-core.ts` | FFT and the frame queue |
 
 The model contract is 48 kHz, 1024-point FFT, a periodic 960-sample Hann window, 480-sample
 hop. Change any of those numbers and the ONNX will still run — it will simply sound wrong.
+A sub-frame model such as `smartnet-v54-psa` answers on a second grid inside that window —
+512-point FFT, a periodic 480-sample window, a 240-sample hop — and the same rule applies
+to it. The worker picks the path from the graph, so older weights need no configuration.
 
 ## Training
 
