@@ -9,7 +9,12 @@
   "peerDependencies": {
     "onnxruntime-web": ">=1.20.0"
   },
+  "devDependencies": {
+    "onnxruntime-node": "^1.29.0"
+  },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "bench:assets": "node bench/fetch-assets.mjs",
+    "bench": "node bench/compare.mjs"
   }
 }
