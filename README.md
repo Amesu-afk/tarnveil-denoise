@@ -66,6 +66,12 @@ made a click LOUDER than it arrived. It is paid for with 0.5 dB of SI-SDR on cle
 It is still the weakest case. If this is exactly what you need, measure before you lean
 on it.
 
+The model on its own — no click suppressor in front, so not the 6.2 above — is
+reproducible from a clean checkout: `npm run bench` scores it against DeepFilterNet 3 on
+frozen fixtures. On the keyboard clip it suppresses the click over speech by 10.4 dB
+while DeepFilterNet 3 leaves it 3.2 dB louder, and it does so leaving the voice
+untouched where the other rewrites it. See [`bench/`](bench/).
+
 It also does not: run at any rate other than 48 kHz, separate speakers, or cancel echo
 (the browser's AEC does that before us).
 
