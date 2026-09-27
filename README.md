@@ -10,6 +10,11 @@ The model was trained from scratch for [TarnVeil](https://github.com/Amesu-afk/T
 and extracted from it. Everything runs in the browser — no audio leaves the machine, and
 your server does not need to do anything.
 
+**Listen before reading:** [typing over speech — before, after and a clean reference, with an
+A/B player](https://tarnveil.ru/en/remove-keyboard-noise.html). The demo was rendered with the
+previous weights (`smartnet-v33`); the current `smartnet-v54-psa` handles clicks under speech
+better.
+
 ## Status
 
 Running in production for one small deployment. In practice that means:
