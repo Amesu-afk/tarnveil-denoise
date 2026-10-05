@@ -9,4 +9,4 @@
 - Worker reuse respects model/runtime/module URLs; disposal is idempotent and failed workers are discarded.
 - Reproducible v54 WAV demo renderer with model/input hashes.
 
-The model remains smartnet-v54-psa from release v0.3.0. This is a packaging/documentation release, not new weights. npm registry publication is pending.
+The model remains smartnet-v54-psa from release v0.3.0. This is a packaging/documentation release, not new weights.

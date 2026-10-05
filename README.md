@@ -1,6 +1,6 @@
 # TarnVeil Denoise
 
-English · [Русский](README.ru.md)
+English · [Русский](https://github.com/Amesu-afk/tarnveil-denoise/blob/main/README.ru.md)
 
 Neural microphone noise suppression for browser applications. A mono Web Audio node with a streaming 48 kHz model, originally built for [TarnVeil](https://github.com/Amesu-afk/TarnVeil). Inference runs locally in a Worker; the package does not upload audio.
 
@@ -24,12 +24,15 @@ Open the printed localhost URL. Record a microphone or process a WAV file, then 
 
 ## Install in your application
 
-**Registry publication is pending.** Version 0.4.0 is prepared as an npm package, but `npm install tarnveil-denoise` will work only after publication. For now install from GitHub, or use the tarball produced by `npm pack`:
+Install the compiled package from npm:
 
 ```sh
-npm install github:Amesu-afk/tarnveil-denoise
+npm install tarnveil-denoise
 npx tarnveil-denoise-assets public/denoise
 ```
+
+For a development version, use `npm install github:Amesu-afk/tarnveil-denoise`.
+You can also install the tarball produced by `npm pack`.
 
 The package ships compiled ESM, TypeScript declarations, a bundled Worker, an AudioWorklet and matching ONNX Runtime **1.29.0** WASM/module files. There is no separate runtime dependency to configure. The asset command copies these files and downloads the **34,191,309-byte** model from [release v0.3.0](https://github.com/Amesu-afk/tarnveil-denoise/releases/tag/v0.3.0), verifying SHA-256 before writing. Weights are excluded from the npm tarball. Host these assets on your own origin. To reuse a verified local model:
 
@@ -90,7 +93,7 @@ This reproducible benchmark uses **mixed recordings**, not a live call: 12 secon
 | Keyboard | 48.3 / 19.2 | 10.4 / 0.0 | 45.5 / 36.0 | −3.2 / −10.2 |
 | Mouse | 49.3 / 38.9 | 10.4 / 1.7 | 37.5 / 28.1 | 0.0 / −5.8 |
 
-These results describe **these fixtures and settings only** and do not establish general superiority over DeepFilterNet3. The residual is `enhance(speech + clicks) − enhance(speech)`; nonlinear speech changes can enter it. A negative result means the residual peak increased. See [methodology, credits and reproduction](bench/README.md).
+These results describe **these fixtures and settings only** and do not establish general superiority over DeepFilterNet3. The residual is `enhance(speech + clicks) − enhance(speech)`; nonlinear speech changes can enter it. A negative result means the residual peak increased. See [methodology, credits and reproduction](https://github.com/Amesu-afk/tarnveil-denoise/blob/main/bench/README.md).
 
 Clean-speech level changed by −0.03 dB on this clip, but waveform error was −19.9 dB relative to the original. Similar loudness does **not** mean untouched speech: consonants and timbre can change. Clicks overlapping speech remain the weakest case; some are barely reduced. Different microphones, rooms and speakers need separate testing. Mobile performance is unmeasured. The model does not separate speakers or cancel echo. The pre-1.0 API may change.
 
@@ -118,4 +121,4 @@ npm run demo:render   # aligned WAVs and hashes in bench/demo-output
 
 Inference: `src/worker.ts`; framing and bounded queue: `src/worklet.ts`; lifecycle API: `src/index.ts`. Model contract: 1024-point FFT, periodic 960-sample window, 480-sample hop; v54 also uses a 512-point FFT, 480-sample window and 240-sample hop. Changing these parameters requires matching weights.
 
-Inference code and weights: Apache-2.0. ONNX Runtime: MIT, included with the runtime assets. Training code is not published. See [contributing](CONTRIBUTING.md), [security](SECURITY.md), and [license](LICENSE).
+Inference code and weights: Apache-2.0. ONNX Runtime: MIT, included with the runtime assets. Training code is not published. See [contributing](https://github.com/Amesu-afk/tarnveil-denoise/blob/main/CONTRIBUTING.md), [security](https://github.com/Amesu-afk/tarnveil-denoise/blob/main/SECURITY.md), and [license](https://github.com/Amesu-afk/tarnveil-denoise/blob/main/LICENSE).
