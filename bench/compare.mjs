@@ -16,6 +16,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { createHash } from 'node:crypto'
 
 const BENCH = dirname(fileURLToPath(import.meta.url))
 const ROOT = dirname(BENCH)
@@ -106,7 +107,7 @@ for (const [name, info] of Object.entries(meta.sources)) {
   const modelAfter = runModel(mixedIn, join(scratch, `mixed-${name}.model.f32`))
   const [dfnAfter] = runDfn([{ in: mixedIn }])
 
-  const row = { source: name, clicks: info.clicks }
+  const row = { source: name, onset_windows: info.onsets.length }
   for (const [label, ref, after, delay] of [
     ['model', modelRef, modelAfter, modelRefDelay],
     ['dfn3', dfnRef, dfnAfter, dfnRefDelay],
@@ -140,6 +141,10 @@ rmSync(scratch, { recursive: true, force: true })
 const artifact = {
   methodology: 'Residual model(speech+clicks)-model(speech), peak per click window; median and worst-tenth over clicks; pause/speech split by speech RMS in window (-50 dBFS). Same speech, placement and seed for both processors. The model is measured alone (the package is the model); the app adds a click suppressor in front.',
   model: MODEL.split(/[\\/]/).pop(),
+  model_sha256: createHash('sha256').update(readFileSync(MODEL)).digest('hex'),
+  delays_samples: { model: modelRefDelay, dfn3: dfnRefDelay },
+  fixture_sha256: Object.fromEntries(['speech.f32', 'mixed-keyboard.f32', 'mixed-mouse.f32'].map(name =>
+    [name, createHash('sha256').update(readFileSync(join(FIX, name))).digest('hex')])),
   deepfilternet3: `vendored app wasm, attenuation=${ATTEN}`,
   speech_credit: meta.speech_credit,
   seed: meta.seed,
@@ -149,11 +154,11 @@ const artifact = {
 writeFileSync(join(BENCH, 'results.json'), JSON.stringify(artifact, null, 2) + '\n')
 
 console.log(`\nmodel delay ${modelRefDelay} samp, dfn3 delay ${dfnRefDelay} samp`)
-const H = 'source        clicks   model(pause/speech med·w10)   dfn3(pause/speech med·w10)'
+const H = 'source       windows   model(pause/speech med·w10)   dfn3(pause/speech med·w10)'
 console.log('\n' + H); console.log('-'.repeat(H.length))
 for (const r of results) {
   const m = r.model, d = r.dfn3
-  console.log(`${r.source.padEnd(13)}${String(r.clicks).padStart(6)}   `
+  console.log(`${r.source.padEnd(13)}${String(r.onset_windows).padStart(6)}   `
     + `${String(m.pause_median).padStart(5)}/${String(m.pause_worst10).padStart(5)}  `
     + `${String(m.speech_median).padStart(5)}/${String(m.speech_worst10).padStart(5)}   `
     + `${String(d.pause_median).padStart(5)}/${String(d.pause_worst10).padStart(5)}  `

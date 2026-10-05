@@ -1,0 +1,22 @@
+name: Quality or browser measurement
+description: Share a reproducible measurement, including results that contradict the README.
+body:
+  - type: input
+    id: pipeline
+    attributes:
+      label: Model hash, package commit, processor settings
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Device, browser, microphone and sample rate
+    validations:
+      required: true
+  - type: textarea
+    id: method
+    attributes:
+      label: Input, method and result
+      description: Distinguish live recording from mixed fixtures and browser processing from native inference. Publish only audio you have permission to share.
+    validations:
+      required: true

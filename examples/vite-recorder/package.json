@@ -1,0 +1,13 @@
+{
+  "name": "tarnveil-denoise-recorder",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "assets": "tarnveil-denoise-assets public/denoise",
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "dependencies": { "tarnveil-denoise": "file:../.." },
+  "devDependencies": { "vite": "8.0.16", "typescript": "6.0.3" }
+}

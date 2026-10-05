@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TarnVeil Denoise — local recorder</title>
+<style>
+  :root { color-scheme: dark; font: 16px/1.55 system-ui; background:#17191d; color:#eee }
+  body { max-width:720px; padding:32px 20px; margin:auto }
+  h1 { line-height:1.2; font-size:32px } p { color:#c6cbd3 }
+  button,input { font:inherit } button { padding:10px 16px; border:1px solid #6d75a8; border-radius:8px; background:#343d72; color:white; cursor:pointer }
+  button:disabled { opacity:.45; cursor:default } .controls { display:flex; gap:12px; flex-wrap:wrap }
+  label { display:block; margin:24px 0 } audio { width:100%; margin:8px 0 }
+  #status { padding:16px; background:#222832; border-radius:8px; overflow-wrap:anywhere }
+  a { color:#aab9ff } [hidden] { display:none }
+</style>
+<h1>TarnVeil Denoise</h1>
+<p>Record your microphone or process a short WAV file with smartnet-v54-psa at 48 kHz. Audio stays in this browser. Use headphones; microphone audio is never played live.</p>
+<div class="controls"><button id="start">Record microphone</button><button id="stop" disabled>Stop recording</button></div>
+<label>Or choose an audio recording (maximum 60 seconds): <input id="file" type="file" accept="audio/*"></label>
+<p id="status" role="status">Ready. Model assets must be prepared with npm run assets.</p>
+<section id="result" hidden><h2>Processed recording</h2><audio id="audio" controls></audio><a id="download" download="tarnveil-denoise.webm">Download recording</a></section>
+<p>Clicks over speech may remain and speech can change. This example tests your browser; the recorded benchmark is a different test.</p>
+<p><a href="https://github.com/Amesu-afk/tarnveil-denoise">Source, benchmark and limitations</a></p>
+<script type="module" src="/src/main.ts"></script>
+</html>

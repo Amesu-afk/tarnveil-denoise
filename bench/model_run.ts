@@ -92,7 +92,9 @@ async function processBlock(input: Float32Array): Promise<Float32Array> {
 
 const inBuf = readFileSync(IN)
 const input = new Float32Array(inBuf.buffer, inBuf.byteOffset, Math.floor(inBuf.byteLength / 4))
-const frames = Math.ceil(input.length / SMARTNET_HOP)
+// Optional tail flush is used for aligned demo exports; benchmark inputs retain
+// the original output length so historical measurements stay comparable.
+const frames = Math.ceil(input.length / SMARTNET_HOP) + (process.argv.includes('--flush') ? 3 : 0)
 const out = new Float32Array(frames * SMARTNET_HOP)
 const block = new Float32Array(SMARTNET_HOP)
 for (let f = 0; f < frames; f++) {

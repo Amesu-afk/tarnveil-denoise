@@ -1,19 +1,39 @@
 {
   "name": "tarnveil-denoise",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Neural microphone noise suppression for the browser: a Web Audio node backed by a streaming 48 kHz model",
   "license": "Apache-2.0",
   "type": "module",
-  "main": "src/index.ts",
-  "files": ["src", "README.md", "LICENSE"],
-  "peerDependencies": {
-    "onnxruntime-web": ">=1.20.0"
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./worker": "./dist/worker.js",
+    "./worklet": "./dist/worklet.js",
+    "./package.json": "./package.json"
   },
+  "bin": { "tarnveil-denoise-assets": "scripts/copy-assets.mjs" },
+  "files": ["dist", "scripts/copy-assets.mjs", "scripts/model.mjs", "README.md", "README.ru.md", "LICENSE", "CHANGELOG.md"],
+  "repository": { "type": "git", "url": "git+https://github.com/Amesu-afk/tarnveil-denoise.git" },
+  "homepage": "https://github.com/Amesu-afk/tarnveil-denoise#readme",
+  "bugs": { "url": "https://github.com/Amesu-afk/tarnveil-denoise/issues" },
+  "keywords": ["noise-suppression", "audio-worklet", "webrtc", "onnx", "keyboard-noise"],
+  "engines": { "node": ">=22.12" },
+  "publishConfig": { "access": "public" },
   "devDependencies": {
-    "onnxruntime-node": "^1.29.0"
+    "esbuild": "0.28.2",
+    "onnxruntime-web": "1.29.0",
+    "onnxruntime-node": "1.29.0",
+    "typescript": "6.0.3"
   },
   "scripts": {
+    "build": "node scripts/build.mjs",
+    "prepare": "npm run build",
+    "prepack": "npm run typecheck && npm run build",
     "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.mjs",
+    "check:package": "node scripts/check-package.mjs",
+    "demo:render": "node bench/render-demo.mjs",
     "bench:assets": "node bench/fetch-assets.mjs",
     "bench": "node bench/compare.mjs"
   }

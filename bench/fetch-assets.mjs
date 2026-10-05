@@ -8,6 +8,7 @@
 import { mkdir, writeFile, stat } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { getModel, MODEL } from '../scripts/model.mjs'
 
 const BENCH = dirname(fileURLToPath(import.meta.url))
 const assets = join(BENCH, 'assets')
@@ -29,6 +30,11 @@ const mb = (n) => `${(n / 1024 / 1024).toFixed(1)} MB`
 await mkdir(assets, { recursive: true })
 for (const { url, path } of FILES) {
   const dest = join(assets, path)
+  if (path === MODEL.name) {
+    await getModel(dest)
+    console.log(`= ${path} (SHA-256 verified)`)
+    continue
+  }
   try {
     const existing = await stat(dest)
     console.log(`= ${path} (${mb(existing.size)}, already present)`)

@@ -1,0 +1,29 @@
+name: Browser or integration bug
+description: Report a reproducible startup, audio or packaging problem.
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Package version or commit and model filename
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser version, OS and sample rate
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps or minimal project
+      description: Include startup status, failure reason and whether this also happens in the recorder example.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual result
+      description: If sharing audio, use a recording you have permission to publish; remove private speech and personal data.
+    validations:
+      required: true

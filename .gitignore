@@ -1,5 +1,10 @@
 node_modules/
-package-lock.json
+dist/
+*.tgz
+.package-check-*/
+examples/vite-recorder/dist/
+examples/vite-recorder/public/denoise/
+bench/demo-output/
 # Benchmark downloads the model and DeepFilterNet3 bundle here; both are large and
 # carry their own upstream licence, so they are fetched, not committed.
 bench/assets/

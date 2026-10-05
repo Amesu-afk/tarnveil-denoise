@@ -3,9 +3,13 @@
 ## Scope and expectations
 
 This package runs untrusted audio through a neural network inside the browser. It does
-not open sockets, does not read or write storage, and does not send anything anywhere:
-the only network requests it makes are the two you configure — the model file and the
-onnxruntime wasm runtime.
+not upload audio or persist recordings. The browser loads the configured model,
+Worker, AudioWorklet and ONNX Runtime module/WASM resources. Serve those resources
+from a trusted origin and keep their versions matched.
+
+The asset CLI is separate from the browser node: it writes into the directory you
+specify and downloads the public v54 model with SHA-256 verification. The recorder
+example keeps audio in local Blobs and offers a user-initiated download.
 
 There is one maintainer and no support commitment. Fixes land when there is time, not on
 a schedule.

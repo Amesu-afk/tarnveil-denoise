@@ -16,10 +16,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
+          cache: npm
 
-      # The only dependency is the onnxruntime runtime, and it is a peer: install it
-      # here, or worker.ts types fail to resolve and the check becomes self-deception.
-      - run: npm install --no-save onnxruntime-web typescript
-
-      - run: npx tsc --noEmit -p tsconfig.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run check:package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tarnveil-denoise-package
+          path: tarnveil-denoise-*.tgz

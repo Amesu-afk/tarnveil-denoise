@@ -1,89 +1,50 @@
-# Benchmark: TarnVeil model vs DeepFilterNet3 on keyboard clicks over speech
+# Fixed-fixture benchmark
 
-A keyboard click is a short burst with most of its energy in 2–8 kHz — exactly
-where `/s/`, `/t/` and other consonants live. A spectral mask cannot cut that band
-without eating speech, so a click that lands **on top of the voice** is the hard
-case. This benchmark measures that case, on frozen inputs anyone reproduces, against
-DeepFilterNet3 — a strong general-purpose suppressor, and the "strong" mode in the
-TarnVeil app.
+Compares smartnet-v54-psa with DeepFilterNet3 on two frozen mixtures. These are separately recorded speech and keyboard/mouse clicks, not a live microphone session or a call. Results apply to these inputs and the stated settings.
 
-## Run it
+## Reproduce
 
-Needs **Node ≥ 24** — the model runner imports the package's own `.ts` DSP directly,
-using `module.registerHooks` and native TypeScript execution.
+Node >=24 is required for native TypeScript execution and module.registerHooks.
 
 ```sh
-npm install            # dev dep: onnxruntime-node
-npm run bench:assets   # fetches the model + DeepFilterNet3 into bench/assets/ (git-ignored)
-npm run bench          # prints the table, writes bench/results.json
+npm ci
+npm run bench:assets
+npm run bench
+npm run demo:render
 ```
 
-Both processors run **out of the box, headless**: the model through this package's
-own DSP (`bench/model_run.ts` reuses `src/dsp.ts` + `src/mask-lookahead.ts` on
-`onnxruntime-node`), DeepFilterNet3 through the exact wasm the app ships
-(`bench/dfn3_process.mjs`). No training code, no torch.
+The v54 download is checked against the release SHA-256. The benchmark uses the package DSP with onnxruntime-node 1.29.0 and the vendored DeepFilterNet3 WASM with attenuation 95. The runtime is different from the browser worker; this does not measure browser inference speed or microphone-to-speaker latency.
 
-## How a number is made
+## Method
 
-For every click, the residual is what the processor did to the click alone:
+For each marked onset, use a window from 5 ms before to 95 ms after it. Measure the peak of `enhance(speech + clicks) - enhance(speech)` relative to the original click peak. Classify windows by clean-speech RMS above/below -50 dBFS; report median and tenth percentile. Nonlinear speech changes caused by the clicks can enter the residual, so it is an estimate of unwanted change, not an isolated source recovered from the output.
 
-```
-enhance(speech),  enhance(speech + click),  subtract  →  click residual
-suppression (dB) = 20·log10( peak|click| / peak|residual| )
-```
+There are 54 onset windows per fixture. Legacy fixture metadata also has a `clicks` count (52 keyboard / 98 mouse); the benchmark now reports the actual number of scored onset windows rather than equating those fields. No fixture audio or placements were changed.
 
-Enhancing the clean speech and subtracting it removes the voice the processor would
-have produced anyway, so what is scored is the click, not the louder voice on top of
-it. Peaking a whole frame instead would measure the voice and hand every processor a
-flattering ~0 dB. Each click is labelled **pause** or **over speech** by the speech
-RMS in its window (−50 dBFS), because suppression in those two cases differs by an
-order of magnitude. Reported per processor: median and worst-tenth.
+Align outputs to the clean input before scoring: measured model delay 544 samples, DFN3 delay 1133 samples. This removes processor delay for comparison; it does not mean zero latency.
 
-DeepFilterNet3's algorithmic delay is measured against the clean pass and removed
-before scoring; the model's is 544 samples.
+## Reproduced results
 
-## Result
+Median / tenth percentile suppression, dB; reproduced 2026-10-05:
 
-`smartnet-v54-psa` vs DeepFilterNet3 (attenuation 95, the app's default), median /
-worst-tenth in dB:
-
-| source | model, pause | model, **over speech** | DFN3, pause | DFN3, **over speech** |
+| Source | v54 pauses | v54 over speech | DFN3 pauses | DFN3 over speech |
 | --- | --- | --- | --- | --- |
-| keyboard | 48.3 / 19.2 | **10.4** / 0.0 | 45.5 / 36.0 | **−3.2** / −10.2 |
-| mouse | 49.3 / 38.9 | **10.4** / 1.7 | 37.5 / 28.1 | **0.0** / −5.8 |
+| Keyboard | 48.3 / 19.2 | 10.4 / 0.0 | 45.5 / 36.0 | -3.2 / -10.2 |
+| Mouse | 49.3 / 38.9 | 10.4 / 1.7 | 37.5 / 28.1 | 0.0 / -5.8 |
 
-**Voice cost**, on the same speech with no click — output level and how much of the
-speech was rewritten (residual after subtracting the original, dB relative to it):
+On clean speech alone, output-level change / waveform-error level relative to input:
 
-| | level change | speech rewritten |
+| Processor | Level change | Waveform error |
 | --- | --- | --- |
-| model | −0.03 dB | −19.9 dB (left alone) |
-| DFN3 | 0.0 dB | +1.6 dB (rewritten) |
+| v54 | -0.03 dB | -19.9 dB |
+| DFN3 | 0.0 dB | +1.6 dB |
 
-Two honest readings:
+Equal level does not prove unchanged speech. This waveform metric is sensitive to phase/processing and is not a perceptual quality score. v54 does better on over-speech median here; DFN3 has the higher tenth percentile in keyboard pauses. These two clips do not establish a general ranking.
 
-- **Over speech the model wins**: it suppresses the click (10.4 dB), DeepFilterNet3
-  does not (−3.2 to 0.0 — it leaves the click as loud or louder), and it does so
-  while leaving the voice essentially untouched. That is the case this model was
-  built for.
-- **In a pause it is a trade**: the model's median is higher, but DeepFilterNet3's
-  worst-tenth is tighter — in silence the model occasionally lets a single click
-  through, DFN3 suppresses more evenly. DFN3 is a general denoiser and never claimed
-  to leave a voice untouched; that is what the voice-cost row is for.
+The app's separate transient-suppressor pipeline and historical v33 measurements use other harnesses and are not directly comparable.
 
-## What this is and is not
+## Fixture credits
 
-This measures **the model alone** — which is what this package is. The TarnVeil app
-puts a separate transient suppressor in front of the model, and measured through
-that full chain over eight sources it reports ~6.2 dB over speech (see the app and
-the `mask-lookahead.ts` note in `src/`). These are different, non-comparable
-harnesses; this one is the model on a fixed clip, the reproducible number for the
-weights this repo ships.
+48 kHz mono float32, 12 seconds. Russian reading from the open M-AILABS ru_RU corpus (hajdurova / strashnaya_minuta); clicks from an own desktop-microphone recording. Click level: -14.2 dB relative to speech peak; seed 20260821. Audio is fixed in fixtures/, with onset positions in fixtures.json.
 
-## Fixtures
-
-`fixtures/` holds frozen 48 kHz mono float32: clean speech, and speech with clicks
-placed in pauses and over the voice at a measured −14.2 dB below the speech peak.
-Speech is a Russian public-domain reading (M-AILABS ru_RU, hajdurova), clicks are an
-own desktop-microphone recording. Regenerate with the same speech, placement and
-seed to change nothing.
+results.json contains model/fixture hashes, measured delays and scores. demo:render verifies those hashes and exports PCM16 WAVs with the 544-sample delay removed, without loudness normalization. It flushes the model tail, preserves all 12 seconds and writes keyboard-v54-metadata.json. This is a native offline rendering of the package model/DSP, not browser live inference.

@@ -3,7 +3,7 @@
 //
 // The package knows nothing about the host application: the model URL, the
 // onnxruntime base and the worklet module URL are all supplied by the caller,
-// which also registers the worklet itself. Every bundler has its own way of
+// and this function registers the worklet. Every bundler has its own way of
 // handing out a module URL, so hardcoding one here would force that bundler —
 // Vite — on everyone.
 import { SMARTNET_RATE } from './dsp'
@@ -17,7 +17,7 @@ export interface DenoiseOptions {
   modelUrl: string
   /** Directory holding onnxruntime-web (ort-wasm-simd-threaded.wasm and .mjs). */
   ortBase: string
-  /** URL of the worklet module, already registered in ctx.audioWorklet. */
+  /** URL of the worklet module; createDenoiseNode registers it. */
   workletUrl: string
   /** URL of the worker module (new Worker(url, { type: 'module' })). */
   workerUrl: string
@@ -45,6 +45,7 @@ const IDLE_WORKER_TTL_MS = 60_000
 const registered = new WeakSet<BaseAudioContext>()
 
 let idleWorker: Worker | null = null
+let idleWorkerKey: string | null = null
 let idleWorkerTimer: ReturnType<typeof setTimeout> | null = null
 
 function dropIdleWorker(): void {
@@ -52,22 +53,26 @@ function dropIdleWorker(): void {
   idleWorkerTimer = null
   idleWorker?.terminate()
   idleWorker = null
+  idleWorkerKey = null
 }
 
-function parkWorker(worker: Worker): void {
+function parkWorker(worker: Worker, key: string): void {
   worker.onmessage = null
   if (idleWorker) {
     worker.terminate()
     return
   }
   idleWorker = worker
+  idleWorkerKey = key
   idleWorkerTimer = setTimeout(dropIdleWorker, IDLE_WORKER_TTL_MS)
 }
 
-function takeIdleWorker(): Worker | null {
+function takeIdleWorker(key: string): Worker | null {
+  if (idleWorkerKey !== key) dropIdleWorker()
   const worker = idleWorker
   if (!worker) return null
   idleWorker = null
+  idleWorkerKey = null
   if (idleWorkerTimer) clearTimeout(idleWorkerTimer)
   idleWorkerTimer = null
   worker.postMessage({ type: 'reset' })
@@ -100,6 +105,7 @@ export async function createDenoiseNode(
     return null
   }
   let worker: Worker | null = null
+  const workerKey = JSON.stringify([options.workerUrl, options.modelUrl, options.ortBase])
   try {
     if (!registered.has(ctx)) {
       await ctx.audioWorklet.addModule(options.workletUrl)
@@ -115,7 +121,7 @@ export async function createDenoiseNode(
       return null
     }
 
-    worker = takeIdleWorker()
+    worker = takeIdleWorker(workerKey)
     if (!worker) {
       worker = new Worker(options.workerUrl, { type: 'module' })
       const modelReady = new Promise<boolean>((resolve) => {
@@ -201,11 +207,13 @@ export async function createDenoiseNode(
         return () => failureListeners.delete(listener)
       },
       dispose() {
+        if (disposed) return
         disposed = true
         failureListeners.clear()
         node.port.onmessage = null
         node.disconnect()
-        parkWorker(activeWorker)
+        if (runtimeFailed) activeWorker.terminate()
+        else parkWorker(activeWorker, workerKey)
       },
     }
   } catch {

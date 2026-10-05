@@ -1,42 +1,23 @@
 # Contributing
 
-Thanks for looking. A few honest notes first.
+This repository is a one-way mirror of the denoise directory in the TarnVeil monorepo. Changes submitted here are applied upstream and exported with contributor authorship preserved. There is one maintainer; response times vary.
 
-This repository is a **one-way mirror**. The code is developed inside the TarnVeil
-monorepo and exported here; nothing is ever merged back from this side. A pull request
-cannot be merged as-is — it will be applied upstream and appear here on the next mirror,
-with your authorship preserved in the commit.
+## Useful contributions
 
-There is one maintainer. Response times are not guaranteed.
+- Reproduce the recorder on Firefox/Safari and report browser, OS, hardware, sample rate, startup/failure messages and an audio comparison you have permission to share.
+- Improve integration examples for a specific bundler or WebRTC capture flow.
+- Report model failures on held-out recordings with input/output and exact pipeline/model version.
+- Improve accessibility and cleanup in the local recorder.
 
-## What is genuinely welcome
+Ideas about training or click removal are welcome with an evaluation plan. Avoid claiming improvements from one fixture or generator score. Real microphone A/B testing is needed before promoting new weights.
 
-- **Measurements that contradict the README.** The numbers there come from real
-  recordings with a clean reference; if yours disagree, that is worth more than a patch.
-  Attach the audio.
-- **Bugs with a reproducer.** Sample rate, browser, and the input file.
-- **Making the model contract easier to get right.** The 48 kHz / 1024 / 960 / 480 tuple
-  has to match what the model was trained on, and getting it wrong sounds wrong without
-  failing.
+## Checks
 
-## What will probably be declined
-
-- **Approaches to keyboard clicks under speech that have not been measured.** Eight have
-  been tried and are listed in the README. Reasoning about the mechanism has a poor track
-  record here — seven of those eight looked convincing beforehand.
-- Retraining proposals without an evaluation plan. The trap in this problem is that the
-  scene generator's own metric keeps improving while the model overfits to the generator.
-  Any claim of improvement has to be shown on held-out live recordings.
-- Reformatting, renaming, or dependency churn.
-
-## Before you send anything
-
-```bash
-npx tsc --noEmit -p tsconfig.json
+```sh
+npm ci
+npm run typecheck
+npm test
+npm run check:package
 ```
 
-The one error about `onnxruntime-web` is expected unless you have installed the peer
-dependency locally.
-
-Keep comments explaining **why**, not what — the existing ones record measurements and
-failed attempts on purpose, so the next person does not repeat them.
+For quality changes, also run the benchmark on Node >=24 and attach results and model hash. Do not include private recordings, credentials or downloaded weights in a pull request. See SECURITY.md for private security reports.
