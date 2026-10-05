@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.1
+
+- Keep the English README at the package root and move the Russian translation to docs, so npm selects the English file.
+- Allow Node 18 or newer for package installation and the asset command; check the packed package on Node 18, 20, 22 and 24.
+- Put links to TarnVeil and the audio demo near the start of both READMEs.
+
+The audio processing code and model weights are unchanged.
+
 ## 0.4.0
 
 - Compiled npm package: ESM, declarations, bundled Worker/AudioWorklet and matching ONNX Runtime 1.29.0 resources.

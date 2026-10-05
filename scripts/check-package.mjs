@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
-import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { strict as assert } from 'node:assert'
 
@@ -17,8 +17,11 @@ for (const name of ['dist/index.js', 'dist/index.d.ts', 'dist/worker.js', 'dist/
   assert(names.has(name), `Missing packaged asset: ${name}`)
 }
 assert(![...names].some(name => name.endsWith('.onnx') || name.startsWith('node_modules/') || name.includes('.env')))
-const consumer = mkdtempSync(join(root, '.package-check-'))
-assert(!relative(root, resolve(consumer)).startsWith('..'))
+assert.deepEqual([...names].filter(name => /^readme(?:\..*)?$/i.test(name)), ['README.md'], 'npm must have one root README')
+assert(names.has('docs/README.ru.md'), 'Missing Russian translation')
+const scratch = process.env.DENOISE_CHECK_DIR || root
+mkdirSync(scratch, { recursive: true })
+const consumer = mkdtempSync(join(scratch, '.package-check-'))
 cpSync(join(root, 'examples/vite-recorder'), consumer, {
   recursive: true,
   filter: path => !/(?:^|[\\/])(?:node_modules|dist|public)(?:[\\/]|$)/.test(path),

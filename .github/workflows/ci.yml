@@ -27,3 +27,20 @@ jobs:
         with:
           name: tarnveil-denoise-package
           path: tarnveil-denoise-*.tgz
+
+  node-compat:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['18', '20', '22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: tarnveil-denoise-package
+          path: package
+      - run: npm run check:node -- package/tarnveil-denoise-*.tgz

@@ -1,14 +1,18 @@
 # TarnVeil Denoise
 
-English · [Русский](https://github.com/Amesu-afk/tarnveil-denoise/blob/main/README.ru.md)
+English · [Русский](https://github.com/Amesu-afk/tarnveil-denoise/blob/main/docs/README.ru.md)
 
-Neural microphone noise suppression for browser applications. A mono Web Audio node with a streaming 48 kHz model, originally built for [TarnVeil](https://github.com/Amesu-afk/TarnVeil). Inference runs locally in a Worker; the package does not upload audio.
+Microphone noise suppression for browser apps. Audio is processed on the device in a Worker. The output is a Web Audio node you can connect to a call or a recorder.
 
-**Listen:** [before, after and clean reference](https://tarnveil.ru/en/remove-keyboard-noise.html). The demo mixes separately recorded speech and keyboard clicks and uses `smartnet-v54-psa` alone, without an extra transient suppressor.
+Built for voice calls in TarnVeil. The processing code and model weights are open so other apps can use them. The package does not upload audio.
+
+[Try TarnVeil](https://tarnveil.ru/) · [Listen before and after](https://tarnveil.ru/en/remove-keyboard-noise.html)
+
+The demo mixes separately recorded speech and keyboard clicks. It uses `smartnet-v54-psa` without an extra click suppressor. The original recording and clean speech are included for comparison.
 
 ## Try it
 
-Node **22.12 or newer** for building; Node **24 or newer** for the benchmark. The browser needs AudioWorklet, WebAssembly SIMD and HTTPS or localhost.
+The Vite example needs Node **22.12 or newer**; the benchmark needs Node **24 or newer**. The browser needs AudioWorklet, WebAssembly SIMD and HTTPS or localhost.
 
 ```sh
 git clone https://github.com/Amesu-afk/tarnveil-denoise.git
@@ -24,7 +28,7 @@ Open the printed localhost URL. Record a microphone or process a WAV file, then 
 
 ## Install in your application
 
-Install the compiled package from npm:
+Installing the compiled package and running the asset command requires Node **18 or newer**. Audio processing runs in the browser:
 
 ```sh
 npm install tarnveil-denoise
@@ -107,6 +111,8 @@ Historical first-release/v33 results and the app's separate transient-suppressor
 - Weights: 32.6 MiB, plus runtime assets. Downloads and model loading add startup time. Serve and cache the files deliberately.
 
 ## Development
+
+Use Node **24 or newer** for development and the full set of checks.
 
 ```sh
 npm ci
