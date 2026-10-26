@@ -2,9 +2,9 @@
 
 English · [Русский](https://github.com/Amesu-afk/tarnveil-denoise/blob/main/docs/README.ru.md)
 
-Microphone noise suppression for browser apps. Audio is processed on the device in a Worker. The output is a Web Audio node you can connect to a call or a recorder.
+On-device microphone noise suppression for browser calls and recordings. Connect the processed audio to WebRTC or MediaRecorder through a TypeScript API and a Web Audio node.
 
-Built for voice calls in TarnVeil. The processing code and model weights are open so other apps can use them. The package does not upload audio.
+Developed for [TarnVeil](https://tarnveil.ru/), the package includes processing code, model weights and a recorder example for use in other applications. Audio processing runs locally in a Worker; the package does not upload recordings.
 
 [Try TarnVeil](https://tarnveil.ru/) · [Listen before and after](https://tarnveil.ru/en/remove-keyboard-noise.html)
 
